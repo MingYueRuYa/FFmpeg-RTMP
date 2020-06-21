@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rtmp", "rtmp\rtmp.vcxproj", "{B3CE5E40-302F-4630-B411-FEB1F90E1500}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opencv_demo", "opencv_demo\opencv_demo.vcxproj", "{D3BDD718-B557-457C-87D2-B55C3EB62B53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -15,6 +17,10 @@ Global
 		{B3CE5E40-302F-4630-B411-FEB1F90E1500}.Debug|Win32.Build.0 = Debug|Win32
 		{B3CE5E40-302F-4630-B411-FEB1F90E1500}.Release|Win32.ActiveCfg = Release|Win32
 		{B3CE5E40-302F-4630-B411-FEB1F90E1500}.Release|Win32.Build.0 = Release|Win32
+		{D3BDD718-B557-457C-87D2-B55C3EB62B53}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D3BDD718-B557-457C-87D2-B55C3EB62B53}.Debug|Win32.Build.0 = Debug|Win32
+		{D3BDD718-B557-457C-87D2-B55C3EB62B53}.Release|Win32.ActiveCfg = Release|Win32
+		{D3BDD718-B557-457C-87D2-B55C3EB62B53}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
