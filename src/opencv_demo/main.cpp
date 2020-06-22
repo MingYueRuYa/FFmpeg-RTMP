@@ -35,7 +35,7 @@ void showimage()
 
 void padding_rgb()
 {
-    Mat mat(800, 600, CV_8UC3);
+    Mat mat(200, 500, CV_8UC3);
 
     // 元素字节数大小
     int es = mat.elemSize();
