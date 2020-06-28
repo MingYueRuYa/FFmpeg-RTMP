@@ -1,4 +1,6 @@
 #include "common.h"
+#include "XRtmp.h"
+#include "XMediaEncode.h"
 
 extern "C"
 {
@@ -8,15 +10,73 @@ extern "C"
 
 #include <iostream>
 
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+
 using std::cout;
 using std::endl;
 
 #pragma comment(lib, "avformat.lib")
 #pragma comment(lib, "avutil.lib")
 #pragma comment(lib, "avcodec.lib")
+#pragma comment(lib, "opencv_world331.lib")
 
-int main(int argc, char *argv[])
-{
+int USBLive() {
+    // 编码器和像素格式转换
+    XMediaEncode *media_encode = XMediaEncode::Get(0);
+
+    // 封装和推流对象
+    XRtmp *rtmp = XRtmp::Get(0);
+
+    cv::VideoCapture camera;
+    if (! camera.open(0)) {
+        cout << "open video error." << endl;
+        return -1;
+    }
+
+    int width   = camera.get(CV_CAP_PROP_FRAME_WIDTH);
+    int height  = camera.get(CV_CAP_PROP_FRAME_HEIGHT);
+    int fpts    = camera.get(CV_CAP_PROP_FPS);
+
+    media_encode->in_width  = width;
+    media_encode->in_height = height;
+    media_encode->out_width = width;
+    media_encode->out_height = height;
+
+    media_encode->InitScale();
+
+    if (! media_encode->InitVideoCodec()) { return -1; }
+
+    char *url = "rtmp://192.168.26.31/live";
+    rtmp->Init(url);
+    rtmp->AddStream(media_encode->vc);
+    rtmp->SendHead();
+
+    cv::Mat frame;
+    for (;;) {
+        if (! camera.grab()) { continue; }
+
+        if (! camera.retrieve(frame)) { continue; }
+
+        cv::imshow("video", frame);
+        cv::waitKey(1);
+
+        media_encode->pixsize = frame.elemSize();
+        AVFrame *yuv = media_encode->RGBToYUV((char *)frame.data);
+        if (nullptr == yuv) { continue; }
+
+        // h264编码
+        AVPacket *pack = media_encode->EncodeVideo(yuv);
+        if (nullptr == pack) { continue; }
+
+        rtmp->SendFrame(pack);
+    }
+
+    return 0;
+}
+
+// 本地文件推流
+int LocalFileLive() {
     char *in_url = "test.flv";
     // 初始化所有封装和解封装 flv mp4 mov mp3
     av_register_all();
@@ -111,6 +171,16 @@ int main(int argc, char *argv[])
     }
 
     getchar();
+
+    return 0;
+}
+
+// 使用usb camera摄像头推流
+int main(int argc, char *argv[])
+{
+    // LocalFileLive();
+
+    USBLive();
 
     return 0;
 }
