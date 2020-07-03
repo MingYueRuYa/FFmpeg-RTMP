@@ -33,9 +33,6 @@
     <ClCompile Include="XMediaEncode.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XAudio.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\common.h">
@@ -45,9 +42,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="XMediaEncode.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="XAudio.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

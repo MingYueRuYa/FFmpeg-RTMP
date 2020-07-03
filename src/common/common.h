@@ -6,6 +6,13 @@ extern "C"
 #include "libavformat/avformat.h"
 }
 
+ #define has_error(ret_code) {                              \
+                                if (0 != ret_code) {        \
+                                    av_error(ret_code);     \
+                                    return -1;              \
+                                }                           \
+                             }
+
 int av_error(int errorCode);
 
 double r2d(AVRational r);

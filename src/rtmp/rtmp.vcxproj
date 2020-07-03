@@ -91,13 +91,11 @@
     <ClCompile Include="..\common\common.cpp" />
     <ClCompile Include="cameravediostream.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="XAudio.cpp" />
     <ClCompile Include="XMediaEncode.cpp" />
     <ClCompile Include="XRtmp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\common.h" />
-    <ClInclude Include="XAudio.h" />
     <ClInclude Include="XMediaEncode.h" />
     <ClInclude Include="XRtmp.h" />
   </ItemGroup>
