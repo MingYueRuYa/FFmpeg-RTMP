@@ -1,4 +1,6 @@
+#include "XRtmp.h"
 #include "common.h"
+#include "XMediaEncode.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
@@ -22,10 +24,7 @@ extern "C"
 using std::cout;
 using std::endl;
 
-int main(int argc, char *argv[])
-{
-    QCoreApplication a(argc, argv);
-
+int test_rtmp_audio() {
 	//注册所有的编解码器
 	avcodec_register_all();
 
@@ -215,6 +214,90 @@ int main(int argc, char *argv[])
         qDebug() << info.deviceName() << "\n";
     }
     */
+
+}
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    char *out_url = "rtmp://192.168.26.31/live";
+
+    int sample_rate = 44100;
+    int channels    = 2;
+    int sample_byte = 2;
+
+    AVSampleFormat in_sample_fmt    = AV_SAMPLE_FMT_S16;
+    AVSampleFormat out_sample_fmt   = AV_SAMPLE_FMT_FLTP;
+
+    QAudioFormat audio_format;
+    audio_format.setSampleRate(sample_rate);
+    audio_format.setChannelCount(channels);
+    audio_format.setSampleSize(sample_byte*8);
+    audio_format.setCodec("audio/pcm");
+    audio_format.setByteOrder(QAudioFormat::LittleEndian);
+    audio_format.setSampleType(QAudioFormat::UnSignedInt);
+
+    QAudioDeviceInfo device_info = QAudioDeviceInfo::defaultInputDevice();
+
+    if (! device_info.isFormatSupported(audio_format)) {
+        cout << "Audio format not support " << endl;
+        return -1;
+    }
+
+    QAudioInput *input = new QAudioInput(audio_format);
+    // 开始录制音频
+    QIODevice *io = input->start();
+
+    XMediaEncode *xencoder = XMediaEncode::Get();
+    xencoder->channels = channels;
+    xencoder->nb_sample = 1024;
+    xencoder->sample_rate = sample_rate;
+    xencoder->in_smaple_fmt = XSampleFMT::X_S16;
+    xencoder->out_sample_fmt = XSampleFMT::X_FLATP;
+
+    if (! xencoder->InitResample()) { return -1; }
+
+    if (! xencoder->InitAudioCode()) { return -1; }
+
+    // 输出封装器和音频流配置
+    XRtmp *xrtmp = XRtmp::Get();
+    if (! xrtmp->Init(out_url)) { return -1; }
+
+    // 添加视频流
+    if (! xrtmp->AddStream(xencoder->ac)) { return -1; }
+
+    // 打开rtmp的网络输出IO
+    if (! xrtmp->SendHead()) { return -1; }
+
+    // 一次读取一帧音频的字节数
+    int read_size = xencoder->nb_sample * channels * sample_byte;
+    char *buf = new char[read_size];
+    for (;;) {
+        // 一次读取一帧音频
+        if (input->bytesReady() < read_size) {
+            QThread::msleep(1); 
+            continue;
+        }
+
+        int size = 0;
+        while (size != read_size) {
+            int len = io->read(buf+size, read_size-size);
+            if (len < 0) { break; }
+            size += len;
+        }
+
+        if (size != read_size) { continue; }
+
+        AVFrame *pcm = xencoder->Resample(buf);
+        AVPacket *pack = xencoder->EncodeAudio(pcm);
+        if (nullptr == pack) { continue; }
+
+        bool result = xrtmp->SendFrame(pack);
+
+        if (result) { cout << "#" << flush; }
+    }
+
 
     return a.exec();
 }

@@ -9,7 +9,7 @@ extern "C"
  #define has_error(ret_code) {                              \
                                 if (0 != ret_code) {        \
                                     av_error(ret_code);     \
-                                    return -1;              \
+                                    return false;           \
                                 }                           \
                              }
 
