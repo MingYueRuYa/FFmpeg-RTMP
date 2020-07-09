@@ -101,13 +101,21 @@
   <ItemGroup>
     <ClCompile Include="..\common\common.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="XAudioRecord.cpp" />
+    <ClCompile Include="XData.cpp" />
+    <ClCompile Include="XDataThread.cpp" />
     <ClCompile Include="XMediaEncode.cpp" />
     <ClCompile Include="XRtmp.cpp" />
+    <ClCompile Include="XVideoCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\common.h" />
+    <ClInclude Include="XAudioRecord.h" />
+    <ClInclude Include="XData.h" />
+    <ClInclude Include="XDataThread.h" />
     <ClInclude Include="XMediaEncode.h" />
     <ClInclude Include="XRtmp.h" />
+    <ClInclude Include="XVideoCapture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

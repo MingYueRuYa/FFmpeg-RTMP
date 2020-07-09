@@ -1,6 +1,9 @@
+#include "XData.h"
 #include "XRtmp.h"
 #include "common.h"
 #include "XMediaEncode.h"
+#include "XAudioRecord.h"
+#include "XVideoCapture.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
@@ -217,87 +220,170 @@ int test_rtmp_audio() {
 
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) {
+
+    test_rtmp_audio();
+
+    return 0;
+}
+
+int main02(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QCoreApplication app(argc, argv);
 
-    char *out_url = "rtmp://192.168.26.31/live";
+ 	char *outUrl = "rtmp://192.168.26.31/live";
 
-    int sample_rate = 44100;
-    int channels    = 2;
-    int sample_byte = 2;
+	int ret = 0;
+	int sampleRate = 44100;
+	int channels = 2;
+	int sampleByte = 2;
+	int nbSample = 1024;
+	///打开摄像机
+	XVideoCapture *xv = XVideoCapture::Get();
+	if (!xv->Init(0))
+	{
+		cout << "open camera failed!" << endl;
+		getchar();
+		return -1;
+	}
+	cout << "open camera success!" << endl;
+	xv->Start();
 
-    AVSampleFormat in_sample_fmt    = AV_SAMPLE_FMT_S16;
-    AVSampleFormat out_sample_fmt   = AV_SAMPLE_FMT_FLTP;
+	///1 qt音频开始录制
+	XAudioRecord *ar = XAudioRecord::Get();
+	ar->sampleRate = sampleRate;
+	ar->channels = channels;
+	ar->sampleByte = sampleByte;
+	ar->nbSamples = nbSample;
+	if (!ar->Init())
+	{
+		cout << "XAudioRecord Init failed!" << endl;
+		getchar();
+		return -1;
+	}
+	ar->Start();
 
-    QAudioFormat audio_format;
-    audio_format.setSampleRate(sample_rate);
-    audio_format.setChannelCount(channels);
-    audio_format.setSampleSize(sample_byte*8);
-    audio_format.setCodec("audio/pcm");
-    audio_format.setByteOrder(QAudioFormat::LittleEndian);
-    audio_format.setSampleType(QAudioFormat::UnSignedInt);
+	///音视频编码类
+	XMediaEncode *xe = XMediaEncode::Get();
 
-    QAudioDeviceInfo device_info = QAudioDeviceInfo::defaultInputDevice();
+	///2 初始化格式转换上下文
+	///3 初始化输出的数据结构
+	xe->in_width = xv->width;
+	xe->in_height = xv->height;
+	xe->out_width = xv->width;
+	xe->out_height = xv->height;
+	if (!xe->InitScale())
+	{
+		getchar();
+		return -1;
+	}
+	cout << "初始化视频像素转换上下文成功!" << endl;
+	
+	///2 音频重采样 上下文初始化
+	xe->channels = channels;
+	xe->nb_sample = nbSample;
+	xe->sample_rate = sampleRate;
+	xe->in_smaple_fmt = XSampleFMT::X_S16;
+	xe->out_sample_fmt = XSampleFMT::X_FLATP;
+	if (!xe->InitResample())
+	{
+		getchar();
+		return -1;
+	}
+	///4 初始化音频编码器
+	if (!xe->InitAudioCode())
+	{
+		getchar();
+		return -1;
+	}
 
-    if (! device_info.isFormatSupported(audio_format)) {
-        cout << "Audio format not support " << endl;
-        return -1;
-    }
-
-    QAudioInput *input = new QAudioInput(audio_format);
-    // 开始录制音频
-    QIODevice *io = input->start();
-
-    XMediaEncode *xencoder = XMediaEncode::Get();
-    xencoder->channels = channels;
-    xencoder->nb_sample = 1024;
-    xencoder->sample_rate = sample_rate;
-    xencoder->in_smaple_fmt = XSampleFMT::X_S16;
-    xencoder->out_sample_fmt = XSampleFMT::X_FLATP;
-
-    if (! xencoder->InitResample()) { return -1; }
-
-    if (! xencoder->InitAudioCode()) { return -1; }
-
-    // 输出封装器和音频流配置
-    XRtmp *xrtmp = XRtmp::Get();
-    if (! xrtmp->Init(out_url)) { return -1; }
-
-    // 添加视频流
-    if (! xrtmp->AddStream(xencoder->ac)) { return -1; }
-
-    // 打开rtmp的网络输出IO
-    if (! xrtmp->SendHead()) { return -1; }
-
-    // 一次读取一帧音频的字节数
-    int read_size = xencoder->nb_sample * channels * sample_byte;
-    char *buf = new char[read_size];
-    for (;;) {
-        // 一次读取一帧音频
-        if (input->bytesReady() < read_size) {
-            QThread::msleep(1); 
-            continue;
-        }
-
-        int size = 0;
-        while (size != read_size) {
-            int len = io->read(buf+size, read_size-size);
-            if (len < 0) { break; }
-            size += len;
-        }
-
-        if (size != read_size) { continue; }
-
-        AVFrame *pcm = xencoder->Resample(buf);
-        AVPacket *pack = xencoder->EncodeAudio(pcm);
-        if (nullptr == pack) { continue; }
-
-        bool result = xrtmp->SendFrame(pack);
-
-        if (result) { cout << "#" << flush; }
-    }
+	///初始化视频编码器
+	if (!xe->InitVideoCodec())
+	{
+		getchar();
+		return -1;
+	}
 
 
-    return a.exec();
+	///5 输出封装器和音频流配置
+	//a 创建输出封装器上下文
+	XRtmp *xr = XRtmp::Get(0);
+	if (!xr->Init(outUrl))
+	{
+		getchar();
+		return -1;
+	}
+
+	//添加视频流
+	int vindex = 0;
+	vindex = xr->AddStream(xe->vc);
+	if (vindex<0)
+	{
+		getchar();
+		return -1;
+	}
+
+	//b 添加音频流 
+	int aindex = xr->AddStream(xe->ac);
+	if (aindex<0)
+	{
+		getchar();
+		return -1;
+	}
+
+	///打开rtmp 的网络输出IO
+	//写入封装头
+	if (!xr->SendHead())
+	{
+		getchar();
+		return -1;
+	}
+	//一次读取一帧音频的字节数
+	for (;;)
+	{
+		//一次读取一帧音频
+		XData ad = ar->Pop();
+		XData vd = xv->Pop();
+		if (ad.size <= 0 && vd.size <= 0)
+		{
+			QThread::msleep(1);
+			continue;
+		}
+
+		//处理音频
+		if (ad.size > 0)
+		{
+			//重采样源数据
+			AVFrame *pcm = xe->Resample(ad.data);
+			ad.Drop();
+			AVPacket *pkt = xe->EncodeAudio(pcm);
+			if (pkt)
+			{
+				////推流
+				if (xr->SendFrame(pkt,aindex))
+				{
+					cout << "#" << flush;
+				}
+			}
+			
+		}
+
+		//处理视频
+		if (vd.size > 0) {
+			AVFrame *yuv = xe->RGBToYUV(vd.data);
+			vd.Drop();
+			AVPacket *pkt = xe->EncodeVideo(yuv);
+			if (pkt) {
+				////推流
+				if (xr->SendFrame(pkt,vindex)) {
+					cout << "@" << flush;
+				}
+			}
+
+		}
+
+	}
+
+	getchar();
+    return app.exec();
 }

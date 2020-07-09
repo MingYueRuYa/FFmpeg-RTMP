@@ -94,7 +94,7 @@ public:
     }
 
     bool InitAudioCode() {
-        if (! CreateCodec(AV_CODEC_ID_AAC)) { return false; }
+        if (! (ac = CreateCodec(AV_CODEC_ID_AAC))) { return false; }
 
         ac->bit_rate = 40000;
         ac->sample_rate = sample_rate;
@@ -106,7 +106,7 @@ public:
 
     bool InitVideoCodec() {
         // 初始化编解码器
-        if (! CreateCodec(AV_CODEC_ID_H264)) { return false; }
+        if (! (vc = CreateCodec(AV_CODEC_ID_H264))) { return false; }
 
         // 压缩后每秒视频的bit位大小50KB
         vc->bit_rate = 50*1024*8;
@@ -255,26 +255,26 @@ private:
         return true;
     }
 
-    bool CreateCodec(AVCodecID cid) {
+    AVCodecContext* CreateCodec(AVCodecID cid) {
         AVCodec *codec = avcodec_find_encoder(cid);
         if (nullptr == codec) {
             cout << "avcodec_find_encoder failed" << endl;
-            return false;
+            return NULL;
         }
 
         // 音频编码器上下文
-        ac = avcodec_alloc_context3(codec);
-        if (nullptr == ac) {
+        AVCodecContext *c = avcodec_alloc_context3(codec);
+        if (nullptr == c) {
             cout << "avcodec_alloc_context3 failed" << endl;
-            return false;
+            return NULL;
         }
 
-        ac->flags != AV_CODEC_FLAG_GLOBAL_HEADER;
-        ac->thread_count = XGetCPUCore();
+        c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        c->thread_count = XGetCPUCore();
 
         cout << "avcodec_alloc_context3 success" << endl;
         
-        return true;
+        return c;
     }
 
 private:

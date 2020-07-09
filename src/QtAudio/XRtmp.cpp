@@ -43,14 +43,14 @@ public:
         return true;
     }
 
-    bool AddStream(const AVCodecContext *c)
+    int AddStream(const AVCodecContext *c)
     {
-        if (nullptr == c) { return false; }
+        if (nullptr == c) { return -1; }
 
         AVStream *st = avformat_new_stream(ic, NULL);
         if (nullptr == st) { 
             cout << "add stream error" << endl;
-            return false;
+            return -1;
         }
 
         st->codecpar->codec_tag = 0;
@@ -69,7 +69,7 @@ public:
             this->as = st;
         }
 
-        return true;
+        return st->index;
     }
 
     bool SendHead() {
@@ -90,10 +90,12 @@ public:
         return true;
     }
 
-    bool SendFrame(AVPacket *packet) {
+    bool SendFrame(AVPacket *packet, int streamIndex) {
         if (nullptr == packet) { return false; } 
 
         if (packet->size <= 0 || nullptr == packet->data) { return false; }
+
+        packet->stream_index = streamIndex;
 
         AVRational stime;
         AVRational dtime;
