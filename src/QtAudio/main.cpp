@@ -220,14 +220,16 @@ int test_rtmp_audio() {
 
 }
 
+/*
 int main(int argc, char *argv[]) {
 
     test_rtmp_audio();
 
     return 0;
 }
+*/
 
-int main02(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
