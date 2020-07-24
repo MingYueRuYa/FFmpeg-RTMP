@@ -6,6 +6,7 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
 extern "C"
@@ -297,6 +298,54 @@ void opencv_rtmp() {
     destroyAllWindows();
 }
 
+// Ë«±ßÄ¥Æ¤Ëã·¨
+int bilateral() {
+	Mat src = imread("001.jpg");
+	
+	if (! src.data) {
+		cout << "open file failed" << endl;
+		getchar();
+
+		return -1;
+	}
+
+	const int width		= 400;
+	const int height	= 374;
+
+	cv::namedWindow("src");
+	cv::moveWindow("src", width, height);
+	cv:imshow("src", src);
+
+	Mat image;
+	int d = 3;
+
+	cv::namedWindow("image");
+	cv::moveWindow("image", width, height);
+
+	for (;;) {
+
+		long long b = getTickCount();
+		bilateralFilter(src, image, d, d*2, d/2);
+		double sec = (double)(getTickCount()-b)/(double)getTickFrequency();
+		cout << "d=" << d << " sec is " << sec << endl;
+
+		imshow("image", image);
+
+		int k = waitKey(0);
+		if (k == 'd') {
+			d += 2;
+		} else if (k == 'f') {
+			d -= 2;
+		} else {
+			break;
+		}
+	}
+
+	waitKey(0);
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
     // showimage();
@@ -305,7 +354,9 @@ int main(int argc, char *argv[])
 
     // open_usb_camera();
 
-    opencv_rtmp();
+    // opencv_rtmp();
+
+	bilateral();
 
     getchar();
 
