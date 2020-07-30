@@ -17,19 +17,30 @@ public:
         cv::Mat frame;
 
         while (! isExit) {
-            if (! camera.read(frame)) {
-                msleep(1);
-                continue;
-            }
+ 		if (!camera.read(frame))
+			{
+				msleep(1);
+				continue;
+			}
+			if (frame.empty())
+			{
+				msleep(1);
+				continue;
+			}/*
+			imshow("v", frame);
+			waitKey(1);*/
+			//确保数据是连续的 
+			fmutex.lock();
+			for (int i = 0; i < filters.size(); i++)
+			{
+				cv::Mat des;
+				filters[i]->Filter(&frame, &des);
+				frame = des;
+			}
+			fmutex.unlock();
 
-            if (frame.empty()) {
-                msleep(1);
-                continue;
-            }
-
-            XData d((char *)frame.data, frame.cols*frame.rows*frame.elemSize());
-
-            Push(d);
+			XData d((char*)frame.data, frame.cols*frame.rows*frame.elemSize(),GetCurTime());
+			Push(d);
         }
     }
 

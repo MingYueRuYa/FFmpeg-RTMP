@@ -90,10 +90,10 @@ public:
         return true;
     }
 
-    bool SendFrame(AVPacket *packet, int streamIndex) {
-        if (nullptr == packet) { return false; } 
+    bool SendFrame(XData d, int streamIndex) {
+        if (!d.data || d.size <= 0 )return false;
 
-        if (packet->size <= 0 || nullptr == packet->data) { return false; }
+		AVPacket *packet = (AVPacket *)d.data;
 
         packet->stream_index = streamIndex;
 

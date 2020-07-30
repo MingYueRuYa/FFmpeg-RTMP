@@ -24,6 +24,7 @@ public:
 	//退出线程，并等待线程退出（阻塞）
 	virtual void Stop();
 
+	virtual void Clear();
 	XDataThread();
 	virtual ~XDataThread();
 protected:

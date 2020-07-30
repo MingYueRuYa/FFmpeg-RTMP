@@ -36,8 +36,9 @@ public:
 			{
 				continue;
 			}
+			long long pts = GetCurTime();
 			//已经读取一帧音频
-			Push(XData(buf, readSize));
+			Push(XData(buf, readSize, pts));
 		}
 		delete buf;
 		cout << "退出音频录制线程" << endl;

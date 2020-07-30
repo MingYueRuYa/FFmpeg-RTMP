@@ -2,7 +2,8 @@
 #define xvideocapture_h
 
 #include "XDataThread.h"
-
+#include "XFilter.h"
+#include <vector>
 class XVideoCapture : public XDataThread
 {
 public:
@@ -16,8 +17,15 @@ public:
     virtual void Stop() = 0;
 
     virtual ~XVideoCapture();
-
+	void AddFilter(XFilter *f)
+	{
+		fmutex.lock();
+		filters.push_back(f);
+		fmutex.unlock();
+	}
 protected:
+	QMutex fmutex;
+	std::vector<XFilter*> filters;
     XVideoCapture();
 
 };

@@ -1,5 +1,16 @@
 #include "XDataThread.h"
 
+void XDataThread::Clear()
+{
+	mutex.lock();
+	while (!datas.empty())
+	{
+		datas.front().Drop();
+		datas.pop_front();
+	}
+	mutex.unlock();
+}
+
 //在列表结尾插入
 void XDataThread::Push(XData d)
 {

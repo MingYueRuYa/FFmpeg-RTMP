@@ -1,7 +1,5 @@
 #pragma once
-
-struct AVFrame;
-struct AVPacket;
+#include "XData.h"
 
 class AVCodecContext;
 
@@ -40,10 +38,10 @@ public:
     virtual bool InitResample() = 0;
 
     // 返回值 无需调用者清理
-    virtual AVFrame *Resample(char *data) = 0;
+    virtual XData Resample(XData d) = 0;
 
     // 返回值 无需调用者清理
-    virtual AVFrame *RGBToYUV(char *rgb) = 0;
+    virtual XData RGBToYUV(XData rgb) = 0;
 
     // 视频编码初始化
     virtual bool InitVideoCodec() = 0;
@@ -52,11 +50,11 @@ public:
     virtual bool InitAudioCode() = 0;
 
     // 视频编码
-    virtual AVPacket *EncodeVideo(AVFrame *frame) = 0;
+    virtual XData EncodeVideo(XData frame) = 0;
 
     // 音频编码
-    virtual AVPacket *EncodeAudio(AVFrame *frame) = 0;
-
+    virtual XData EncodeAudio(XData frame) = 0;
+	virtual void Close() = 0;
     virtual ~XMediaEncode();
 
     // 视频编码器上下文

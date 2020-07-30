@@ -112,7 +112,7 @@ public:
         vc->bit_rate = 50*1024*8;
         vc->width = out_width;
         vc->height = out_height;
-        vc->time_base = {1, fps};
+        // vc->time_base = {1, fps};
         vc->framerate = {fps, 1};
 
         // 画面组的大小，多少帧一个关键帧
@@ -123,29 +123,51 @@ public:
         return OpenCodec(&vc);
     }
 
-    AVPacket *EncodeAudio(AVFrame *frame) {
-        pcm->pts = apts;
+	long long lasta = -1;
+    XData EncodeAudio(XData frame) {
+		XData r;
+		if (frame.size <= 0 || !frame.data)return r;
+		AVFrame *p = (AVFrame *)frame.data;
+		if (lasta == p->pts)
+		{
+			p->pts += 1000;
+		}
+		lasta = p->pts;
+		int ret = avcodec_send_frame(ac, p);
 
-        apts += av_rescale_q(pcm->nb_samples, {1, sample_rate}, ac->time_base);
-        if (0 != avcodec_send_frame(ac,pcm)) { return nullptr; }
-        av_packet_unref(&apack);
-        if (0 != avcodec_receive_packet(ac, &apack)) { return nullptr; }
+		if (ret != 0)
+			return r;
+		av_packet_unref(&apack);
+		ret = avcodec_receive_packet(ac, &apack);
+		if (ret != 0)
+			return r;
+		r.data = (char*)&apack;
+		r.size = apack.size;
+		r.pts = frame.pts;
+		return r;
 
-        return &apack;
     }
 
-    AVPacket *EncodeVideo(AVFrame *frame) {
-        av_packet_unref(&vpack);
-        // h264编码
-        frame->pts = vpts++;
+    XData EncodeVideo(XData frame) {
+		av_packet_unref(&vpack);
+		XData r;
+		if (frame.size <= 0 || !frame.data)return r;
+		AVFrame *p = (AVFrame *)frame.data;
 
-        int ret = avcodec_send_frame(this->vc, frame);
-        if (ret != 0) { return NULL; }
+		///h264编码
+		//frame->pts = vpts;
+		//vpts++;
+		int ret = avcodec_send_frame(vc, p);
+		if (ret != 0)
+			return r;
 
 		ret = avcodec_receive_packet(vc, &vpack);
-        if (ret != 0 || vpack.size<= 0) { return NULL; }
-
-		return &vpack;
+		if (ret != 0 || vpack.size<= 0)
+			return r;
+		r.data = (char*)&vpack;
+		r.size = vpack.size;
+		r.pts = frame.pts;
+		return r;
     }
 
    bool InitScale() {
@@ -176,22 +198,34 @@ public:
         return true;
     }
 	
-    AVFrame *RGBToYUV(char *rgb)
+    XData RGBToYUV(XData d)
     {
+		XData r;
+		r.pts = d.pts;
+		
+		
         // 输出的数据结构
         uint8_t *indata[AV_NUM_DATA_POINTERS] = {0};
         // indata[0] bgrbgrbgr
         // plane indata[0] bbbbb indata[1] ggggg indata[2] rrrrr
-        indata[0]= (uint8_t *)rgb;
+        indata[0]= (uint8_t*)d.data;
         int insize[AV_NUM_DATA_POINTERS] = {0};
         // 一行（宽）数据的字节数
         insize[0] = in_width * pixsize;
 
         int h = sws_scale(this->vsc, indata, insize, 0,
                             in_height, this->yuv->data, this->yuv->linesize);
-        if (h <= 0) { return nullptr; }
+        if (h <= 0) { return r; }
 
-        return this->yuv;
+        yuv->pts = d.pts;
+		r.data = (char*)yuv;
+		int *p = yuv->linesize;
+		while ((*p))
+		{
+			r.size += (*p)*out_height;
+			p++;
+		}
+		return r;
     }
 
     bool InitResample() {
@@ -229,16 +263,23 @@ public:
         return true;
     }
 
-    AVFrame *Resample(char *data) {
-        if (nullptr == data) { return nullptr; }
+    XData Resample(XData d) {
+		XData r;
+		const uint8_t *indata[AV_NUM_DATA_POINTERS] = { 0 };
+		indata[0] = (uint8_t *)d.data;
+		int len = swr_convert(asc, pcm->data, pcm->nb_samples, //输出参数，输出存储地址和样本数量
+			indata, pcm->nb_samples
+			);
+		if (len <= 0)
+		{
+			return r;
+		}
+		pcm->pts = d.pts;
+		r.data = (char*)pcm;
+		r.size = pcm->nb_samples*pcm->channels * 2;
+		r.pts = d.pts;
+		return r;
 
-        const uint8_t *indata[AV_NUM_DATA_POINTERS] = {0};
-        indata[0] = (uint8_t *)data;
-        int len = swr_convert(asc, pcm->data, pcm->nb_samples, // 输出参数
-                                indata, pcm->nb_samples);
-        if (len <= 0) { return nullptr; }
-
-        return pcm;
     }
 
 
@@ -271,7 +312,7 @@ private:
 
         c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         c->thread_count = XGetCPUCore();
-
+		c->time_base = { 1,1000000 };
         cout << "avcodec_alloc_context3 success" << endl;
         
         return c;
