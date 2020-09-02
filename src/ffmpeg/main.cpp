@@ -88,8 +88,8 @@ int av_error(int errorCode) {
     return -1;
 }
 
-int _tmain(int argc, char* argv[])
-{
+// 录制PCM原始数据
+int recorder_pcm_audio() {
     av_register_all();
     avdevice_register_all();
 
@@ -221,8 +221,18 @@ int _tmain(int argc, char* argv[])
 
 	release_resource();
     return 0;
-
+	
 Error:
 	release_resource();
 	return -1;
+
+}
+
+
+int _tmain(int argc, char* argv[])
+{
+	// 录制pcm数据
+	// recorder_pcm_audio();
+
+	return 0;
 }
